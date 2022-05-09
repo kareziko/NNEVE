@@ -11,7 +11,9 @@ precision = 2
 fail_under = 90
 omit =
     *migrations*
-    tests\conftest.p
+    *conftest.py*
+    *test_benchmarks_suite*
+    *cli_toggle.py
 exclude_lines =
     # Have to re-enable the standard pragma
     pragma: no cover
