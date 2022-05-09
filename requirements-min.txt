@@ -1,0 +1,6 @@
+# Packages required for successfull testing
+setuptools==62.1.0
+wheel==0.37.1
+tox==3.24.5
+# Utility
+click==8.1

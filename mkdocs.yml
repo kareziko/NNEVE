@@ -1,0 +1,48 @@
+site_name: NNEVE docs
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indygo
+      accent: indygo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+nav:
+  - Home: index.md
+  - Development:
+    - Feature flow: "develop/feature.md"
+    - Tox usage: "develop/tox_basics.md"
+    - Documentation: "develop/docs.md"
+    - Formatting code: "develop/formatting.md"
+    - Quality checks: "develop/quality_checks.md"
+  - Changelog: changelog.md
+  - License: license.md
+markdown_extensions:
+  - toc:
+      permalink: "#"
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - attr_list
+  - admonition
+  - md_in_html
+  - mdx_truly_sane_lists
+plugins:
+  - search
+  - macros:
+      include_dir:
+        .
