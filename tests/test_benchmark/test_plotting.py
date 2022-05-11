@@ -37,9 +37,10 @@ def test_plot_with_stats_two_samples_manual_range(
     fig, _ = plot_multi_sample(
         np.loadtxt(DATA_DIR / "example_1_matrix_1.gz"),
         np.loadtxt(DATA_DIR / "example_1_matrix_2.gz"),
-        x_range=np.exp(np.arange(100)),
+        x_range=[0 for _ in range(30)],
         x_axis_label="Sample size",
     )
+    generate_sample(fig, 2)
     assert (
         get_image_identity_fraction(
             Image.open(DATA_DIR / "example_2.png"), fig_to_image(None, None)

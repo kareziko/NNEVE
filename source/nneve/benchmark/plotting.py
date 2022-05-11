@@ -75,8 +75,13 @@ def plot_multi_sample(  # noqa: CFQ002 CCR001
     ax.set_xlabel(x_axis_label)
     ax.set_ylabel(y_axis_label)
 
+    x_range_length = len(cast(Sized, x_range))
+
     if x_range is not None:
-        ax.set_xticks(x, x_range)
+        if len(x) == x_range_length:
+            ax.set_xticks(x, x_range)
+        else:
+            ax.set_xticks(np.linspace(0, n, x_range_length), x_range)
 
     ax.legend(loc="upper right")
     return fig, ax
