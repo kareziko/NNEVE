@@ -3,6 +3,7 @@ import datetime
 import platform as pyplatform
 import subprocess
 import time
+from contextlib import suppress
 from typing import Any, Dict, List, Tuple
 
 import psutil
@@ -51,9 +52,9 @@ class CpuInfo(JsonPrintableModel):
     L1_data: str
     L1_instruction: str
     L2_size: str
-    L2_line_size: int
-    L2_cache_associativity: int
-    L3_size: int
+    L2_line_size: str
+    L2_cache_associativity: str
+    L3_size: str
 
     support_mmx: bool
     support_sse: bool
@@ -65,7 +66,7 @@ class CpuInfo(JsonPrintableModel):
     support_avx2: bool
     support_avx512: bool
 
-    stepping: int
+    stepping: str
     model: str
     family: str
     vendor_id_raw: str
@@ -74,62 +75,83 @@ class CpuInfo(JsonPrintableModel):
     def __init__(self) -> None:
         kwargs: Dict[str, Any] = {}
         cpuinfo = get_cpu_info()
-        kwargs.setdefault("core_count", cpuinfo["count"])
-        kwargs.setdefault("architecture", cpuinfo["arch"])
-        kwargs.setdefault("max_frequency", cpuinfo["hz_advertised"][0])
-        kwargs.setdefault("min_frequency", cpuinfo["hz_advertised"][1])
-        kwargs.setdefault("L1_data", cpuinfo["l1_data_cache_size"])
+        kwargs.setdefault("core_count", cpuinfo.get("count", "N/A"))
+        kwargs.setdefault("architecture", cpuinfo.get("arch", "N/A"))
         kwargs.setdefault(
-            "L1_instruction", cpuinfo["l1_instruction_cache_size"]
+            "max_frequency", cpuinfo.get("hz_advertised", ("N/A", "N/A"))[0]
         )
-        kwargs.setdefault("L2_size", cpuinfo["l2_cache_size"])
-        kwargs.setdefault("L2_line_size", cpuinfo["l2_cache_line_size"])
         kwargs.setdefault(
-            "L2_cache_associativity", cpuinfo["l2_cache_associativity"]
+            "min_frequency", cpuinfo.get("hz_advertised", ("N/A", "N/A"))[1]
         )
-        kwargs.setdefault("L3_size", cpuinfo["l3_cache_size"])
-        kwargs.setdefault("stepping", cpuinfo["stepping"])
-        kwargs.setdefault("model", cpuinfo["model"])
-        kwargs.setdefault("family", cpuinfo["family"])
-        kwargs.setdefault("flags", ";".join(cpuinfo["flags"]))
-        kwargs.setdefault("vendor_id_raw", cpuinfo["vendor_id_raw"])
-        kwargs.setdefault("brand_raw", cpuinfo["brand_raw"])
+        kwargs.setdefault("L1_data", cpuinfo.get("l1_data_cache_size", "N/A"))
+        kwargs.setdefault(
+            "L1_instruction", cpuinfo.get("l1_instruction_cache_size", "N/A")
+        )
+        kwargs.setdefault("L2_size", cpuinfo.get("l2_cache_size", "N/A"))
+        kwargs.setdefault(
+            "L2_line_size", cpuinfo.get("l2_cache_line_size", "N/A")
+        )
+        kwargs.setdefault(
+            "L2_cache_associativity",
+            cpuinfo.get("l2_cache_associativity", "N/A"),
+        )
+        kwargs.setdefault("L3_size", cpuinfo.get("l3_cache_size", "N/A"))
+        kwargs.setdefault("stepping", cpuinfo.get("stepping", "N/A"))
+        kwargs.setdefault("model", cpuinfo.get("model", "N/A"))
+        kwargs.setdefault("family", cpuinfo.get("family", "N/A"))
+        kwargs.setdefault("flags", ";".join(cpuinfo.get("flags", "N/A")))
+        kwargs.setdefault("vendor_id_raw", cpuinfo.get("vendor_id_raw", "N/A"))
+        kwargs.setdefault("brand_raw", cpuinfo.get("brand_raw", "N/A"))
 
-        kwargs.setdefault("support_mmx", "mmx" in cpuinfo["flags"])
-        kwargs.setdefault("support_sse", "sse" in cpuinfo["flags"])
-        kwargs.setdefault("support_sse2", "sse2" in cpuinfo["flags"])
-        kwargs.setdefault("support_ssse3", "ssse3" in cpuinfo["flags"])
-        kwargs.setdefault("support_sse4_1", "sse4_1" in cpuinfo["flags"])
-        kwargs.setdefault("support_sse4_2", "sse4_2" in cpuinfo["flags"])
-        kwargs.setdefault("support_avx", "avx" in cpuinfo["flags"])
-        kwargs.setdefault("support_avx2", "avx2" in cpuinfo["flags"])
-        kwargs.setdefault("support_avx512", "avx512" in cpuinfo["flags"])
+        kwargs.setdefault("support_mmx", "mmx" in cpuinfo.get("flags", "N/A"))
+        kwargs.setdefault("support_sse", "sse" in cpuinfo.get("flags", "N/A"))
+        kwargs.setdefault(
+            "support_sse2", "sse2" in cpuinfo.get("flags", "N/A")
+        )
+        kwargs.setdefault(
+            "support_ssse3", "ssse3" in cpuinfo.get("flags", "N/A")
+        )
+        kwargs.setdefault(
+            "support_sse4_1", "sse4_1" in cpuinfo.get("flags", "N/A")
+        )
+        kwargs.setdefault(
+            "support_sse4_2", "sse4_2" in cpuinfo.get("flags", "N/A")
+        )
+        kwargs.setdefault("support_avx", "avx" in cpuinfo.get("flags", "N/A"))
+        kwargs.setdefault(
+            "support_avx2", "avx2" in cpuinfo.get("flags", "N/A")
+        )
+        kwargs.setdefault(
+            "support_avx512", "avx512" in cpuinfo.get("flags", "N/A")
+        )
 
         super().__init__(**kwargs)
 
 
 class SysMemInfo(JsonPrintableModel):
-    total: int
-    available: int
-    used: int
-    free: int
+    total: int = Field(default=-1)
+    available: int = Field(default=-1)
+    used: int = Field(default=-1)
+    free: int = Field(default=-1)
 
-    swap_total: int
-    swap_used: int
-    swap_free: int
+    swap_total: int = Field(default=-1)
+    swap_used: int = Field(default=-1)
+    swap_free: int = Field(default=-1)
 
     def __init__(self) -> None:
         kwargs: Dict[str, Any] = {}
-        virtual = psutil.virtual_memory()  # type: ignore
-        kwargs.setdefault("total", virtual.total)  # type: ignore
-        kwargs.setdefault("available", virtual.available)  # type: ignore
-        kwargs.setdefault("used", virtual.used)  # type: ignore
-        kwargs.setdefault("free", virtual.free)  # type: ignore
+        with suppress(Exception):
+            virtual = psutil.virtual_memory()  # type: ignore
+            kwargs.setdefault("total", virtual.total)  # type: ignore
+            kwargs.setdefault("available", virtual.available)  # type: ignore
+            kwargs.setdefault("used", virtual.used)  # type: ignore
+            kwargs.setdefault("free", virtual.free)  # type: ignore
 
-        swap = psutil.swap_memory()
-        kwargs.setdefault("swap_total", swap.total)
-        kwargs.setdefault("swap_used", swap.used)
-        kwargs.setdefault("swap_free", swap.free)
+        with suppress(Exception):
+            swap = psutil.swap_memory()
+            kwargs.setdefault("swap_total", swap.total)
+            kwargs.setdefault("swap_used", swap.used)
+            kwargs.setdefault("swap_free", swap.free)
 
         super().__init__(**kwargs)
 
@@ -180,12 +202,12 @@ class GpuInfo(JsonPrintableModel):
     @classmethod
     def get_gpu_info(cls) -> List["GpuInfo"]:
         gpuinfo: List[GpuInfo] = []
-        try:
+        with suppress(Exception):
             gpuinfo.extend(cls.get_nvidia_gpu_info())
+        with suppress(Exception):
             gpuinfo.extend(cls.get_amd_gpu_info())
+        with suppress(Exception):
             gpuinfo.extend(cls.get_intel_gpu_info())
-        except OSError:
-            pass
         return gpuinfo
 
     @classmethod

@@ -1,6 +1,6 @@
 from pathlib import Path
 from timeit import timeit
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, Iterable, List, Tuple
 
 import pytest
 import tensorflow as tf
@@ -10,32 +10,42 @@ from nneve.benchmark import (
     datetag,
     disable_gpu_or_skip,
     get_sys_info,
-    plot_with_stats,
+    is_gpu,
+    plot_multi_sample,
     skip_if_no_gpu,
 )
+from nneve.benchmark.plotting import pretty_bytes
 
 DIR = Path(__file__).parent
 DATA_DIR = DIR / "data"
-
-
-SHAPE_SET_1 = [(256, 256), (512, 512), (1024, 1024), (2048, 2048)]
 
 
 class TestTensorTensorVsTensorConstant:
     def run_benchmark_samples(
         self,
         function: Callable[..., Any],
-        sampling_repeats: int,
+        data_set: Iterable[Tuple[Any, ...]],
         samples_in_single: int,
     ) -> List[float]:
         # let it train the graph before to avoid unstable results
-        timeit(function, number=samples_in_single)
-
+        data_set = list(data_set)
+        timeit(
+            "function(*sample_input)",
+            globals={
+                "function": function,
+                "sample_input": data_set[0],
+            },
+            number=samples_in_single,
+        )
         results: List[float] = []
-        for _ in range(sampling_repeats):
+        for sample_input in data_set:
             results.append(
                 timeit(
-                    function,
+                    "function(*sample_input)",
+                    globals={
+                        "function": function,
+                        "sample_input": sample_input,
+                    },
                     number=samples_in_single,
                 )
                 / samples_in_single
@@ -43,118 +53,127 @@ class TestTensorTensorVsTensorConstant:
 
         return results
 
-    def dump_plot(self, plot_title: str, shape: Tuple[int, ...]):
-        shape_string = "x".join(str(i) for i in shape)
-        plt.title(f"{plot_title} {shape_string}".capitalize())
+    def dump_plot(self, plot_title: str):
+        plt.title(f"{plot_title}".capitalize())
         plot_title_no_spaces = plot_title.replace(" ", "_")
         dest_dir = DATA_DIR / plot_title_no_spaces
         dest_dir.mkdir(0o777, True, True)
         dtag = datetag()
-        plt.savefig(
-            dest_dir / f"{plot_title_no_spaces}_{shape_string}_{dtag}.png"
+        plt.savefig(dest_dir / f"{plot_title_no_spaces}_{dtag}.png")
+        (dest_dir / f"sys_info_{plot_title_no_spaces}_{dtag}.json").write_text(
+            get_sys_info().json(), encoding="utf-8"
         )
-        (
-            dest_dir
-            / f"sys_info_{plot_title_no_spaces}_{shape_string}_{dtag}.json"
-        ).write_text(get_sys_info().json(), encoding="utf-8")
 
-    def benchmark_constant_ones(self, tensor_shape: Tuple[int, int]):
+    def benchmark_constant_ones(self):
         @tf.function
         def __function(__x: tf.Tensor, __c: tf.Tensor):
-            return tf.multiply(tf.add(__x, __c), __c)
+            return tf.multiply(__x, __c)
 
-        sampling_repeats = 100
         samples_in_single = 100
+        constant = 32.21
+        if is_gpu():
+            test_range = range(0, 26)
+        else:
+            test_range = range(0, 26)
 
-        x = tf.random.normal(tensor_shape)
-        c = 1.0
+        data_set_1 = []
+        data_set_2 = []
+        for i in test_range:
+            shape = (2 << i,)
+            tensor = tf.random.normal(shape, dtype=tf.float64)
+            data_set_1.append((tensor, constant))
+            data_set_2.append(
+                (
+                    tensor,
+                    tf.constant(constant, shape=shape, dtype=tf.float64),
+                )
+            )
+            del shape
 
-        tensor_x_constant = self.run_benchmark_samples(
-            lambda: __function(x, c),
-            sampling_repeats,
-            samples_in_single,
+        sample_1 = self.run_benchmark_samples(
+            __function,
+            data_set=data_set_1,
+            samples_in_single=samples_in_single,
         )
 
-        x = tf.random.normal(tensor_shape)
-        c = tf.ones(tensor_shape)
-
-        tensor_x_tensor = self.run_benchmark_samples(
-            lambda: __function(x, c),
-            sampling_repeats,
-            samples_in_single,
+        sample_2 = self.run_benchmark_samples(
+            __function,
+            data_set=data_set_2,
+            samples_in_single=samples_in_single,
         )
 
-        plot_with_stats(
-            tensor_x_constant,
-            tensor_x_tensor,
+        plot_multi_sample(
+            sample_1,
+            sample_2,
+            x_range=[pretty_bytes(2 << i) for i in test_range],
             labels=(
                 "tensor x constant",
                 "tensor x tensor",
             ),
+            x_axis_label="Tensor size [float64]",
         )
 
     @pytest.mark.benchmark()
-    @pytest.mark.parametrize("tensor_shape", SHAPE_SET_1)
-    def test_constant_ones_cpu(self, tensor_shape: Tuple[int, int]):
+    def test_constant_ones_cpu(self):
         disable_gpu_or_skip()
-        self.benchmark_constant_ones(tensor_shape)
-        self.dump_plot("constant ones cpu", tensor_shape)
+        self.benchmark_constant_ones()
+        self.dump_plot("constant ones cpu")
 
     @pytest.mark.benchmark()
-    @pytest.mark.parametrize("tensor_shape", SHAPE_SET_1)
-    def test_constant_ones_gpu(self, tensor_shape: Tuple[int, int]):
+    def test_constant_ones_gpu(self):
         skip_if_no_gpu()
-        self.benchmark_constant_ones(tensor_shape)
-        self.dump_plot("constant ones gpu", tensor_shape)
+        self.benchmark_constant_ones()
+        self.dump_plot("constant ones gpu")
 
-    def benchmark_graph_non_graph(self, tensor_shape: Tuple[int, int]):
-        @tf.function
-        def __graph_function(__x: tf.Tensor, __c: tf.Tensor):
-            return tf.multiply(tf.add(__x, __c), __c)
+    def benchmark_graph_non_graph(self):
 
-        sampling_repeats = 100
-        samples_in_single = 100
+        samples_in_single = 40
+        test_range = range(0, 20)
 
-        x = tf.random.normal(tensor_shape)
-        c = 1.0
+        def __function(__x: tf.Tensor, __c: tf.Tensor, __i: int):
+            total = tf.zeros_like(__x)
+            for _ in range(__i):
+                total += tf.multiply(__c, __x)
+            return total
+
+        data_set = []
+        for i in test_range:
+            shape = (2 << i,)
+            tensor1 = tf.random.normal(shape, dtype=tf.float64)
+            tensor2 = tf.random.normal(shape, dtype=tf.float64)
+            data_set.append((tensor1, tensor2, 40))
 
         sample_1 = self.run_benchmark_samples(
-            lambda: __graph_function(x, c),
-            sampling_repeats,
-            samples_in_single,
+            __function,
+            data_set=data_set,
+            samples_in_single=samples_in_single,
         )
-
-        def __non_graph_function(__x: tf.Tensor, __c: tf.Tensor):
-            return tf.multiply(tf.add(__x, __c), __c)
-
-        x = tf.random.normal(tensor_shape)
-        c = tf.ones(tensor_shape)
 
         sample_2 = self.run_benchmark_samples(
-            lambda: __non_graph_function(x, c),
-            sampling_repeats,
-            samples_in_single,
+            tf.function(__function),
+            data_set=data_set,
+            samples_in_single=samples_in_single,
         )
 
-        plot_with_stats(
+        plot_multi_sample(
             sample_1,
             sample_2,
+            x_range=[pretty_bytes(2 << i) for i in test_range],
             labels=(
-                "graph",
                 "non graph",
+                "graph",
             ),
+            x_axis_label="Tensor size [float64]",
         )
 
     @pytest.mark.benchmark()
-    @pytest.mark.parametrize("tensor_shape", SHAPE_SET_1)
-    def test_graph_non_graph_cpu(self, tensor_shape: Tuple[int, int]):
+    def test_graph_non_graph_cpu(self):
         disable_gpu_or_skip()
-        self.benchmark_graph_non_graph(tensor_shape)
-        self.dump_plot("graph non graph cpu", tensor_shape)
+        self.benchmark_graph_non_graph()
+        self.dump_plot("graph non graph cpu")
 
     @pytest.mark.benchmark()
-    @pytest.mark.parametrize("tensor_shape", SHAPE_SET_1)
-    def test_graph_non_graph_gpu(self, tensor_shape: Tuple[int, int]):
+    def test_graph_non_graph_gpu(self):
         skip_if_no_gpu()
-        self.benchmark_graph_non_graph(tensor_shape)
-        self.dump_plot("graph non graph gpu", tensor_shape)
+        self.benchmark_graph_non_graph()
+        self.dump_plot("graph non graph gpu")

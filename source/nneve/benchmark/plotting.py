@@ -1,4 +1,5 @@
 from datetime import datetime
+from itertools import chain
 from typing import Optional, Sized, Tuple, cast
 
 import numpy as np
@@ -16,21 +17,28 @@ def datetag(
     return date.strftime(fmt)
 
 
-def plot_with_stats(  # noqa: CFQ002
+def plot_multi_sample(  # noqa: CFQ002 CCR001
     *samples: ArrayLike,
+    x_range: Optional[ArrayLike] = None,
     labels: Optional[Tuple[str, ...]] = None,
     colors: Optional[Tuple[str, ...]] = None,
+    x_axis_label: str = "Sample index",
+    y_axis_label: str = "Execution time [s]",
     linewidth: int = 1,
     linestyle: str = "-",
     figsize: Tuple[int, int] = (14, 7),
+    add_stats: bool = False,
     fig: Optional[Figure] = None,
     ax: Optional[plt.Axes] = None,
-) -> None:
+) -> Tuple[Figure, plt.Axes]:
     if fig is None:
         fig = plt.figure(figsize=figsize)
 
     if ax is None:
         ax = plt.axes()
+
+    # find max size to ensure lines are long from left to right
+    n = max(len(cast(Sized, s)) for s in chain(samples, [()]))
 
     if labels is None:
         labels = tuple(f"Sample {i}" for i in range(len(samples)))
@@ -47,23 +55,41 @@ def plot_with_stats(  # noqa: CFQ002
             "#e640a9",
             "#70e630",
         )
-    # find max size to ensure lines are long from left to right
-    n = max(len(cast(Sized, sample)) for sample in samples)
-
+    x = np.arange(n)
     for sample, color, label in zip(samples, colors, labels):
         ax.plot(
+            x,
             sample,
             linewidth=linewidth,
             label=label,
             linestyle=linestyle,
             color=color,
         )
-        ax.axhline(np.max(sample), 0, n, color=color[:7] + "40")
-        ax.axhline(np.mean(sample), 0, n, color=color[:7] + "c0")
-        ax.axhline(np.median(sample), 0, n, color=color[:7] + "80")
-        ax.axhline(np.min(sample), 0, n, color=color[:7] + "40")
-        ax.grid(True)
+        if add_stats:
+            ax.axhline(np.max(sample), 0, n, color=color[:7] + "40")
+            ax.axhline(np.mean(sample), 0, n, color=color[:7] + "c0")
+            ax.axhline(np.median(sample), 0, n, color=color[:7] + "80")
+            ax.axhline(np.min(sample), 0, n, color=color[:7] + "40")
+
+    ax.grid(True)
+    ax.set_xlabel(x_axis_label)
+    ax.set_ylabel(y_axis_label)
+
+    if x_range is not None:
+        ax.set_xticks(x, x_range)
+
     ax.legend(loc="upper right")
+    return fig, ax
+
+
+def pretty_bytes(i: int) -> str:  # noqa: CFQ004
+    if i < 1024:
+        return f"{i}"
+    if i < 1024**2:
+        return f"{i//1024}Ki"
+    if i < 1024**3:
+        return f"{i//1024**2}Mi"
+    return f"{i//1024**3}Gi"
 
 
 def get_array_identity_fraction(first: NDArray, second: NDArray) -> float:

@@ -4,7 +4,8 @@ from .plotting import (
     datetag,
     get_array_identity_fraction,
     get_image_identity_fraction,
-    plot_with_stats,
+    plot_multi_sample,
+    pretty_bytes,
 )
 from .sysinfo import (
     CpuInfo,
@@ -16,11 +17,11 @@ from .sysinfo import (
     TfInfo,
     get_sys_info,
 )
-from .testing import disable_gpu_or_skip, skip_if_no_gpu
+from .testing import disable_gpu_or_skip, is_gpu, skip_if_no_gpu
 
 __all__: List[str] = [
     "datetag",
-    "plot_with_stats",
+    "plot_multi_sample",
     "get_image_identity_fraction",
     "get_array_identity_fraction",
     "skip_if_no_gpu",
@@ -33,4 +34,6 @@ __all__: List[str] = [
     "SysMemInfo",
     "TfInfo",
     "GpuInfo",
+    "is_gpu",
+    "pretty_bytes",
 ]
