@@ -13,7 +13,7 @@ register_toggle(
     cli_flag="benchmark",
     cli_flag_doc="Run only tests marked as benchmarks.",
     pytest_mark_name="benchmark",
-    pytest_mark_doc="Benchmark tests are not allowed by default.",
+    pytest_mark_doc="Benchmark tests were not enabled explicitly.",
     flag_behavior=Behavior.INCLUDE_WHEN_FLAG_AND_EXCLUDE_OTHERS,
 )
 

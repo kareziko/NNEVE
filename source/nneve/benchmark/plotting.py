@@ -1,5 +1,4 @@
 from datetime import datetime
-from types import ModuleType
 from typing import Optional, Sized, Tuple, cast
 
 import numpy as np
@@ -26,7 +25,7 @@ def plot_with_stats(  # noqa: CFQ002
     figsize: Tuple[int, int] = (14, 7),
     fig: Optional[Figure] = None,
     ax: Optional[plt.Axes] = None,
-) -> ModuleType:
+) -> None:
     if fig is None:
         fig = plt.figure(figsize=figsize)
 
@@ -52,21 +51,19 @@ def plot_with_stats(  # noqa: CFQ002
     n = max(len(cast(Sized, sample)) for sample in samples)
 
     for sample, color, label in zip(samples, colors, labels):
-        plt.plot(
+        ax.plot(
             sample,
             linewidth=linewidth,
             label=label,
             linestyle=linestyle,
             color=color,
         )
-        plt.hlines(np.max(sample), 0, n, colors=color[:7] + "40")
-        plt.hlines(np.mean(sample), 0, n, colors=color[:7] + "c0")
-        plt.hlines(np.median(sample), 0, n, colors=color[:7] + "80")
-        plt.hlines(np.min(sample), 0, n, colors=color[:7] + "40")
-        plt.grid(True)
-    plt.legend(loc="upper right")
-
-    return plt
+        ax.axhline(np.max(sample), 0, n, color=color[:7] + "40")
+        ax.axhline(np.mean(sample), 0, n, color=color[:7] + "c0")
+        ax.axhline(np.median(sample), 0, n, color=color[:7] + "80")
+        ax.axhline(np.min(sample), 0, n, color=color[:7] + "40")
+        ax.grid(True)
+    ax.legend(loc="upper right")
 
 
 def get_array_identity_fraction(first: NDArray, second: NDArray) -> float:
