@@ -11,6 +11,8 @@ import tensorflow as tf
 from cpuinfo import get_cpu_info
 from pydantic import BaseModel, Field
 
+__all__ = ["get_sys_info"]
+
 
 class JsonPrintableModel(BaseModel):
     def __str__(self) -> str:

@@ -17,7 +17,7 @@ from .sysinfo import (
     TfInfo,
     get_sys_info,
 )
-from .testing import disable_gpu_or_skip, is_gpu, skip_if_no_gpu
+from .testing import disable_gpu, disable_gpu_or_skip, is_gpu, skip_if_no_gpu
 
 __all__: List[str] = [
     "datetag",
@@ -36,4 +36,5 @@ __all__: List[str] = [
     "GpuInfo",
     "is_gpu",
     "pretty_bytes",
+    "disable_gpu",
 ]

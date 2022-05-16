@@ -8,6 +8,15 @@ from matplotlib.figure import Figure
 from numpy.typing import ArrayLike, NDArray
 from PIL import Image
 
+__all__ = [
+    "datetag",
+    "plot_multi_sample",
+    "pretty_bytes",
+    "get_array_identity_fraction",
+    "get_image_identity_fraction",
+]
+
+
 DEFAULT_COLOR_SET: Tuple[str, ...] = (
     "#a83240",
     "#5353f5",
