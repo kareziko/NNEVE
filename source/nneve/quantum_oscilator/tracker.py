@@ -23,15 +23,15 @@ class QOTracker(QOTrackerBase):
         drive_loss: float,
         c: float,
     ) -> None:
-        self.eigenvalue.append(eigenvalue)
-        self.total_loss.append(total_loss)
-        self.function_loss.append(function_loss)
-        self.lambda_loss.append(lambda_loss)
-        self.drive_loss.append(drive_loss)
+        self.eigenvalue.append(float(eigenvalue))
+        self.total_loss.append(float(total_loss))
+        self.function_loss.append(float(function_loss))
+        self.lambda_loss.append(float(lambda_loss))
+        self.drive_loss.append(float(drive_loss))
         self.c.append(c)
 
     def get_trace(self, index: int) -> str:
         return (
-            f"epoch: {index}, loss: {self.loss[-1]:.4f}, λ: "
-            f"{self.eigenvalue[-1]:.4f}, c: {self.c[-1]:.2f}"
+            f"epoch: {index:6.0f}, loss: {self.loss[-1]:10.4f}, λ: "
+            f"{self.eigenvalue[-1]:10.4f}, c: {self.c[-1]:5.2f}"
         )

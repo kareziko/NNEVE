@@ -33,5 +33,6 @@ class QOConstantsBase(BaseModel):
     tracker: QOTrackerBase = Field(default_factory=QOTrackerBase)
 
     class Config:
-        allow_mutation = False
+        allow_mutation = True
         arbitrary_types_allowed = True
+        underscore_attrs_are_private = True

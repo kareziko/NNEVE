@@ -1,3 +1,5 @@
+from typing import Optional
+
 import tensorflow as tf
 from pydantic import Field
 
@@ -19,9 +21,15 @@ class QOConstants(QOConstantsBase):
     v_f: float = Field(default=1.0)
     v_lambda: float = Field(default=1.0)
     v_drive: float = Field(default=1.0)
+    __sample: Optional[tf.Tensor] = None
 
     def sample(self) -> tf.Tensor:
-        return tf.reshape(
-            tf.linspace(self.x_left, self.x_right, self.sample_size),
-            shape=(-1, 1),
-        )
+        if self.__sample is None:
+            self.__sample = tf.cast(
+                tf.reshape(
+                    tf.linspace(self.x_left, self.x_right, self.sample_size),
+                    shape=(-1, 1),
+                ),
+                dtype=tf.float32,
+            )
+        return self.__sample
