@@ -1,3 +1,4 @@
+import logging
 import typing
 from typing import Any, Callable, List, Tuple, cast
 
@@ -32,7 +33,10 @@ class QONetwork(QONetworkBase):
         eigenvalue = keras.layers.Dense(
             1,
             name="eigenvalue",
-            # ; kernel_initializer=keras.initializers.Constant(0.0),
+            kernel_initializer=keras.initializers.constant(0.0),
+            # ; bias_initializer=keras.initializers.constant(0.0),
+            use_bias=False,
+            activation=None,
         )(tf.ones_like(inputs))
         # join x input with λ from single neuron
         # ; concat_input = keras.layers.Concatenate(axis=1)([inputs, eigenvalue])
@@ -40,7 +44,7 @@ class QONetwork(QONetworkBase):
         # two dense layers, each with {neurons} neurons as NN body
         first = keras.layers.Dense(
             self.constants.neuron_count,
-            # ; activation=tf.sin,
+            activation=tf.sin,
             name="dense_1",
         )(concat_input)
         # internal second layer
@@ -64,13 +68,15 @@ class QONetwork(QONetworkBase):
             [self.inputs], [self.get_layer("eigenvalue").output]
         )
 
-    def get_loss_function(self) -> LossFunctionT:  # noqa: CFQ004
+    def get_loss_function(self) -> LossFunctionT:  # noqa: CFQ004, CFQ001
         @tf.function
         def potential(x: tf.Tensor) -> tf.Tensor:
             return tf.divide(
                 tf.multiply(tf.constant(self.constants.k), tf.square(x)),
                 2,
             )
+
+        self._potential_function = potential
 
         @tf.function
         def boundary(x: tf.Tensor) -> tf.Tensor:
@@ -158,6 +164,15 @@ class QONetwork(QONetworkBase):
             regulators = get_regulators(y, eigenvalue, c)
             return tf.reduce_sum([residuum, *regulators]), eigenvalue, residuum, *regulators, c  # type: ignore
 
+        if self.is_debug:
+            self._potential_function = potential
+            self._boundary_function = boundary
+            self._parametric_solutions_function = parametric_solutions
+            self._differentiate_function = differentiate
+            self._get_regulators_function = get_regulators
+            self._get_residuum_function = get_regulators
+            self._loss_function_function = loss_function
+
         return cast(LossFunctionT, loss_function)
 
     def get_x(self, params: QOParamsBase) -> tf.Tensor:
@@ -180,7 +195,7 @@ class QONetwork(QONetworkBase):
         generation_cache: List["QONetwork"] = []
 
         for i in range(generations):
-            print(f"Generation: {i}")
+            logging.info(f"Generation: {i}")
             best = self.train(params, epochs)
             if best is not None:
                 generation_cache.append(best)

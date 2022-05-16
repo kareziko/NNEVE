@@ -15,5 +15,5 @@ class QOTrackerBase(BaseModel):
     def push_stats(self, *stats: Any) -> None:
         ...
 
-    def get_trace(self, index: int) -> None:
+    def get_trace(self, index: int) -> str:
         return f"epoch: {index}, loss: {self.loss[-1]:.4f}"

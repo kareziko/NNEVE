@@ -1,10 +1,10 @@
+import logging
 import typing
 from copy import deepcopy
 from typing import Any, Callable, List, Optional, Tuple, TypeVar
 
 import numpy as np
 import tensorflow as tf
-from rich.progress import Progress
 from tensorflow import keras
 
 from .constants import QOConstantsBase
@@ -30,16 +30,18 @@ LossFunctionT = Callable[
 class QONetworkBase(keras.Model):
 
     constants: QOConstantsBase
+    is_debug: bool
     loss_function: LossFunctionT
 
     class Config:
-        allow_mutation = False
+        allow_mutation = True
         arbitrary_types_allowed = True
 
-    def __init__(self, constants: QOConstantsBase):
+    def __init__(self, constants: QOConstantsBase, is_debug: bool = False):
         self.constants = constants
         inputs, outputs = self.assemble_hook()
         super().__init__(inputs=inputs, outputs=outputs)
+        self.is_debug = is_debug
         self.post_assemble_hook()
         self.loss_function = self.get_loss_function()
 
@@ -77,8 +79,6 @@ class QONetworkBase(keras.Model):
     ) -> Optional[QOBase_Self]:
         smallest_loss = np.inf
         best_model = None
-        with Progress(transient=True) as progress:
-            task = progress.add_task("Learning...", total=epohs)
 
         for i in range(epohs):
             loss, *stats = self.train_step(params)
@@ -86,7 +86,7 @@ class QONetworkBase(keras.Model):
             self.tracker.push_loss(loss)
             self.tracker.push_stats(*stats)
             description = self.tracker.get_trace(i)
-            progress.update(task, advance=1, description=description)
+            logging.info(description)
 
             # TODO Check performance impact
             if loss < smallest_loss:

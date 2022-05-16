@@ -30,8 +30,8 @@ class QOTracker(QOTrackerBase):
         self.drive_loss.append(drive_loss)
         self.c.append(c)
 
-    def get_trace(self, index: int) -> None:
-        print(
+    def get_trace(self, index: int) -> str:
+        return (
             f"epoch: {index}, loss: {self.loss[-1]:.4f}, λ: "
             f"{self.eigenvalue[-1]:.4f}, c: {self.c[-1]:.2f}"
         )
