@@ -170,7 +170,7 @@ class QONetwork(QONetworkBase):
             self._parametric_solutions_function = parametric_solutions
             self._differentiate_function = differentiate
             self._get_regulators_function = get_regulators
-            self._get_residuum_function = get_regulators
+            self._get_residuum_function = get_residuum
             self._loss_function_function = loss_function
 
         return cast(LossFunctionT, loss_function)
